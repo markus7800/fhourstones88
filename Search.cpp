@@ -177,6 +177,8 @@ void Trans::Hashentry::store(locktype lock, score sc, int work) {
     assert(rc==0);
     return (uint64_t)(foo.ru_utime.tv_sec * 1000 + foo.ru_utime.tv_usec / 1000);
   }
+
+  // full depth-less alpha beta search without probing (but storing positions) in opening book
   score Search::ab(int alpha, int beta) {
     nodes++;
     if (game->nplies == SIZE-1) // one move left
@@ -262,10 +264,10 @@ void Trans::Hashentry::store(locktype lock, score sc, int work) {
     if (sc == LOSSWIN-ttscore) // combine < and >
       sc = DRAW;
     work = hash.store(sc);
-    if (work >= BOOKWORK) {
-      book.store(game, sc, work, 1+av[besti]);
-      parent->showgamemoves();
-    }
+    // if (work >= BOOKWORK) {
+    //   book.store(game, sc, work, 1+av[besti]);
+    //   parent->showgamemoves();
+    // }
     return sc;
   }
   void Search::clear() {
@@ -276,15 +278,17 @@ void Trans::Hashentry::store(locktype lock, score sc, int work) {
   score Search::solve() {
     nodes = 0;
     msecs = millisecs();
-    score sc = dab(8, LOSS, WIN);
-    if (sc == UNKNOWN) {
-      book.bopen();
-      sc = ab(LOSS, WIN);
-      book.bclose();
-    }
+    // score sc = dab(8, LOSS, WIN);
+    // if (sc == UNKNOWN) {
+    //   book.bopen();
+    //   sc = ab(LOSS, WIN);
+    //   book.bclose();
+    // }
+    score sc = ab(LOSS, WIN);
     msecs = 1L + millisecs() - msecs; // prevent division by 0
     return sc;
   }
+  // tries to find solution by querying the opening book up to certain depth
   score Search::dab(int depth, int alpha, int beta) {
     nodes++;
     if (game->haswon(game->color[1-(game->nplies&1)]))
